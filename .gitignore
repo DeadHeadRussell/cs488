@@ -3,6 +3,12 @@
 *.lo
 *.o
 
+# Dependencies
+*.d
+
+# Executables
+*.exe
+
 # Compiled Dynamic libraries
 *.so
 

@@ -7,6 +7,8 @@ LDFLAGS = $(shell pkg-config --libs gtkmm-2.4 gtkglextmm-1.2 lua)
 CPPFLAGS = $(shell pkg-config --cflags gtkmm-2.4 gtkglextmm-1.2 lua)
 CXXFLAGS = $(CPPFLAGS) -W -Wall -O3
 
+.PHONY : clean dep
+
 all: $(BIN)
 
 depend: $(DEP)
@@ -18,6 +20,7 @@ $(BIN): $(OBJ)
 
 dep/%.d: src/%.cpp
 	@echo Generating dependancies for $<...
+	@if [ ! -d "dep" ]; then mkdir dep; fi
 	@set -e; $(CC) -M $(CPPFLAGS) $< \
 					| sed 's/\($*\)\.o[ :]*/obj\/\1.o $(patsubst dep/%, dep\/%, $@) : /g' > $@; \
 			[ -s $@ ] || rm -f $@
@@ -25,6 +28,7 @@ dep/%.d: src/%.cpp
 
 obj/%.o: src/%.cpp
 	@echo Compiling $@...
+	@if [ ! -d "obj" ]; then mkdir obj; fi
 	@$(CXX) -o $@ -c $(CXXFLAGS) $<
 	@echo Done compiling $@.
 
@@ -33,5 +37,7 @@ clean:
 	rm -f dep/*
 	rm -f $(BIN)
 
-include $(DEP)
+ifneq ($(MAKECMDGOALS),clean)
+-include $(DEP)
+endif
 

@@ -4,8 +4,7 @@
 #include <gtkglmm.h>
 #include <gtkmm.h>
 
-class Node {
-};
+#include "Node.h"
 
 class Viewer : public Gtk::GL::DrawingArea {
  public:
@@ -24,6 +23,9 @@ class Viewer : public Gtk::GL::DrawingArea {
 
  private:
   Node* root_;
+
+  bool button_down_;
+  int mouse_prev_[2];
 };
 
 #endif

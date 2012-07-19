@@ -7,6 +7,7 @@
 #include "Primitive.h"
 
 class GeometryNode;
+class HeightMap;
 
 class Node {
  public:
@@ -27,8 +28,10 @@ class Node {
 
   virtual bool IsJoint() const { return false; }
 
-  static GeometryNode* CreateMeshNode(const std::string& name);
   static GeometryNode* CreateSphereNode(const std::string& name);
+  static GeometryNode* CreateMeshNode(const std::string& name);
+  static GeometryNode* CreateHeightMapNode(const std::string& name,
+                                           HeightMap* primitive);
 
  protected:
   unsigned id_;

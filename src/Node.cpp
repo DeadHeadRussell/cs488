@@ -3,6 +3,8 @@
 #include <GL/gl.h>
 #include <GL/glu.h>
 
+#include "Terrain.h"
+
 using std::list;
 using std::string;
 
@@ -17,6 +19,12 @@ GeometryNode* Node::CreateMeshNode(const string& name) {
 
 GeometryNode* Node::CreateSphereNode(const string& name) {
   Primitive* primitive = new Sphere();
+  Material* material = new PhongMaterial(Colour(1.0, 1.0, 1.0), Colour(1.0, 1.0, 1.0), 1.0);
+  GeometryNode* node = new GeometryNode(name, primitive, material);
+  return node;
+}
+
+GeometryNode* Node::CreateHeightMapNode(const string& name, HeightMap* primitive) {
   Material* material = new PhongMaterial(Colour(1.0, 1.0, 1.0), Colour(1.0, 1.0, 1.0), 1.0);
   GeometryNode* node = new GeometryNode(name, primitive, material);
   return node;
@@ -55,7 +63,7 @@ void Node::Rotate(char axis, double angle) {
     case 'x':
     case 'X':
       r = Matrix4x4(Vector4D(1, 0, 0, 0), Vector4D(0, c, -s, 0),
-                    Vector4D(0, 0, s, c), Vector4D(0, 0, 0, 1));
+                    Vector4D(0, s, c, 0), Vector4D(0, 0, 0, 1));
       break;
 
     case 'y':
@@ -74,23 +82,23 @@ void Node::Rotate(char axis, double angle) {
       break;
   }
 
-  SetTransformation(r * transformation_);
+  SetTransformation(transformation_ * r);
 }
 
 void Node::Scale(const Vector3D& amount) {
   Matrix4x4 s(Vector4D(amount[0], 0, 0, 0), Vector4D(0, amount[1], 0, 0),
               Vector4D(0, 0, amount[2], 0), Vector4D(0, 0, 0, 1));
-  SetTransformation(s * transformation_);
+  SetTransformation(transformation_ * s);
 }
 
 void Node::Translate(const Vector3D& amount) {
   Matrix4x4 t(Vector4D(1, 0, 0, amount[0]), Vector4D(0, 1, 0, amount[1]),
               Vector4D(0, 0, 1, amount[2]), Vector4D(0, 0, 0, 1));
-  SetTransformation(t * transformation_);
+  SetTransformation(transformation_ * t);
 }
 
 void Node::Transform(const Matrix4x4& transformation) {
-  SetTransformation(transformation * transformation_);
+  SetTransformation(transformation_ * transformation);
 }
 
 void Node::SetTransformation(const Matrix4x4& transformation) {
@@ -169,7 +177,10 @@ GeometryNode::GeometryNode(const string& name, Primitive* primitive, Material* m
     , material_(material)
     , primitive_(primitive) {}
 
-GeometryNode::~GeometryNode() {}
+GeometryNode::~GeometryNode() {
+  delete primitive_;
+  delete material_;
+}
 
 void GeometryNode::Scale(const Vector3D& amount) {
   Matrix4x4 s(Vector4D(amount[0], 0, 0, 0), Vector4D(0, amount[1], 0, 0),

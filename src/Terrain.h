@@ -9,12 +9,14 @@
 class HeightMap;
 class Node;
 
+void CreateMountain(std::string name);
 Node* GenerateTerrain(std::string name);
-void ThermalWeathering(HeightMap& height_map, unsigned iterations);
+void ThermalWeathering(HeightMap* height_map, unsigned iterations);
 
 class HeightMap : public Primitive {
  public:
   HeightMap();
+  HeightMap(const HeightMap&);
   ~HeightMap();
 
   unsigned GetWidth() const { return width_; }
@@ -22,8 +24,8 @@ class HeightMap : public Primitive {
   double GetTalus() const { return talus_; }
 
   HeightMap& operator=(const HeightMap& other);
-  const double* operator[](unsigned i) const { return map_ + i * width_; }
   double* operator[](unsigned i) { return map_ + i * width_; }
+  const double* operator[](unsigned i) const { return map_ + i * width_; }
 
   virtual void Render() const;
 

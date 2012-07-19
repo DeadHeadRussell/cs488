@@ -6,6 +6,7 @@
 
 #include "Logging.h"
 #include "LSystem.h"
+#include "Terrain.h"
 #include "Trackball.h"
 
 using std::min;
@@ -28,15 +29,21 @@ Viewer::Viewer() {
              Gdk::VISIBILITY_NOTIFY_MASK);
 
   Node* bush = LSystem::GenerateBush("Bush");
-  bush->Translate(Vector3D(-100, -200, -700));
+  bush->Translate(Vector3D(-100, -200, -200));
+  bush->Scale(Vector3D(0.1, 0.1, 0.1));
 
   Node* tree = LSystem::GenerateTree("Tree");
-  tree->Translate(Vector3D(100, -200, -900));
+  tree->Translate(Vector3D(100, -200, -500));
+  tree->Scale(Vector3D(0.1, 0.1, 0.1));
+
+  Node* terrain = GenerateTerrain("test.hm");
+  terrain->Translate(Vector3D(0, -200, -900));
+  terrain->Scale(Vector3D(0.1, 0.1, 0.1));
 
   root_ = new Node("root");
-  root_->Scale(Vector3D(0.3, 0.3, 0.3));
-  root_->AddChild(bush);
-  root_->AddChild(tree);
+  root_->AddChild(terrain);
+  //root_->AddChild(bush);
+  //root_->AddChild(tree);
 
   mouse_prev_[0] = mouse_prev_[1] = 0;
   button_down_ = false;
@@ -183,14 +190,7 @@ bool Viewer::on_motion_notify_event(GdkEventMotion* event) {
   } else if (button[1]) {
     root_->Translate(Vector3D(0.0, 0.0, -mouse_diff[1]));
   } else if (button[2]) {
-    float new_x = event->x - get_width() * 0.5;
-    float new_y = event->y - get_height() * 0.5;
-    float old_x = mouse_prev_[0] - get_width() * 0.5;
-    float old_y = mouse_prev_[1] - get_width() * 0.5;
-
-    float diameter = min(get_height(), get_width()) * 0.5;
-
-    root_->Transform(TrackballRotation(new_x, old_x, new_y, old_y, diameter));
+    root_->Rotate('y', mouse_diff[0] * M_PI / 180);
   }
 
   Invalidate();

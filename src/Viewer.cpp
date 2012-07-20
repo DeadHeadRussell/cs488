@@ -195,9 +195,9 @@ bool Viewer::on_motion_notify_event(GdkEventMotion* event) {
 
   if (button[0]) {
     root_->Translate(Vector3D(mouse_diff[0], -mouse_diff[1], 0.0));
-  } else if (button[1]) {
-    root_->Translate(Vector3D(0.0, 0.0, -mouse_diff[1]));
   } else if (button[2]) {
+    root_->Translate(Vector3D(0.0, 0.0, -mouse_diff[1]));
+  //} else if (button[2]) {
     root_->Rotate('y', mouse_diff[0] * M_PI / 180);
   }
 

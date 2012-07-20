@@ -1,4 +1,4 @@
-#include "Appwindow.h"
+#include "AppWindow.h"
 
 using Gtk::Menu_Helpers::MenuElem;
 

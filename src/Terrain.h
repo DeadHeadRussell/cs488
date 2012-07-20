@@ -11,7 +11,7 @@ class Node;
 
 namespace Terrain {
   void CreateMountain(std::string name);
-  Node* GenerateTerrain(std::string name);
+  HeightMap* GenerateTerrain(std::string name);
   void ThermalWeathering(HeightMap* height_map, unsigned iterations);
 };
 
@@ -20,6 +20,9 @@ class HeightMap : public Primitive {
   HeightMap();
   HeightMap(const HeightMap&);
   ~HeightMap();
+
+  void SetNode(Node* node) { node_ = node; }
+  Node* GetNode() { return node_; }
 
   unsigned GetWidth() const { return width_; }
   unsigned GetLength() const { return length_; }
@@ -34,6 +37,8 @@ class HeightMap : public Primitive {
 
  private:
   Vector3D& GetNormal(unsigned i, unsigned j) const;
+
+  Node* node_;
 
   unsigned width_;
   unsigned length_;

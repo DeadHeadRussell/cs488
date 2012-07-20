@@ -25,6 +25,7 @@ class Viewer : public Gtk::GL::DrawingArea {
  private:
   Node* root_;
 
+  HeightMap* terrain_;
   Flock flock_;
 
   bool button_down_;

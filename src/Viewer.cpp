@@ -37,13 +37,13 @@ Viewer::Viewer() {
   tree->Translate(Vector3D(100, -200, -500));
   tree->Scale(Vector3D(0.1, 0.1, 0.1));
 
-  Node* terrain = Terrain::GenerateTerrain("test.hm");
+  terrain_ = Terrain::GenerateTerrain("test.hm");
 
   Node* flock_node = flock_.GetNode();
   flock_node->Translate(Vector3D(0, 0, -100));
 
   root_ = new Node("root");
-  //root_->AddChild(terrain);
+  root_->AddChild(terrain_->GetNode());
   root_->AddChild(bush);
   root_->AddChild(tree);
   root_->AddChild(flock_node);
@@ -111,13 +111,14 @@ bool Viewer::on_expose_event(GdkEventExpose* event) {
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  flock_.Move();
+  //flock_.Move();
 
   if (flock_.AtDestination()) {
-    flock_.SetDestination(Point3D(-(rand() % 100), (rand() % 200) - 100,
-                                  -(rand() % 100)));
+    //flock_.SetDestination(Point3D(-(rand() % 100), (rand() % 200) - 100,
+    //                              -(rand() % 100)));
   }
 
+  Terrain::ThermalWeathering(terrain_, 1);
   // Render scene here
   root_->Render();
 

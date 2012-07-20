@@ -29,48 +29,48 @@ void CreateMountain(string file_name) {
   file.write((char*)&width, sizeof(width));
   file.write((char*)&talus, sizeof(talus));
 
-  for (unsigned i = 0; i < 200 * 40; i++) {
-    double a = 0.0;
+  for (unsigned i = 0; i < 100 * 10; i++) {
+    double a = 50.0;
     file.write((char*)&a, sizeof(a));
   }
 
-  for (unsigned i = 0; i < 20; i++) {
-    for (unsigned j = 0; j < 40; j++) {
-      double a = 0.0;
+  for (unsigned i = 0; i < 80; i++) {
+    for (unsigned j = 0; j < 10; j++) {
+      double a = 50.0;
       file.write((char*)&a, sizeof(a));
     }
 
-    for (unsigned j = 0; j < 20; j++) {
-      double a = 100.0;
-      file.write((char*)&a, sizeof(a));
+    for (unsigned j = 0; j < 80; j++) {
+      double a = 0.0;
+      file.write ((char*)&a, sizeof(a));
     }
     
-    for (unsigned j = 0; j < 140; j++) {
-      double a = 0.0;
+    for (unsigned j = 0; j < 10; j++) {
+      double a = 50.0;
       file.write((char*)&a, sizeof(a));
     }
   }
 
-  for (unsigned i = 0; i < 200 * 140; i++) {
-    double a = 0.0;
+  for (unsigned i = 0; i < 100 * 10; i++) {
+    double a = 50.0;
     file.write((char*)&a, sizeof(a));
   }
 
   file.close();
 }
 
-Node* GenerateTerrain(string name) {
+HeightMap* GenerateTerrain(string name) {
   ifstream map_stream(name.c_str());
 
   HeightMap* height_map = new HeightMap();
   map_stream >> *height_map;
 
-  ThermalWeathering(height_map, 200);
-  height_map->ComputeNormals();
+  //ThermalWeathering(height_map, 500);
 
   Node* node = new Node(name);
   node->AddChild(Node::CreateHeightMapNode(name, height_map));
-  return node;
+  height_map->SetNode(node);
+  return height_map;
 }
 
 void ThermalWeathering(HeightMap* height_map, unsigned iterations) {
@@ -139,12 +139,14 @@ void ThermalWeathering(HeightMap* height_map, unsigned iterations) {
   }
 
   *height_map = h2;
+  height_map->ComputeNormals();
 }
 
 }
 
 HeightMap::HeightMap()
-    : width_(0)
+    : node_(0)
+    , width_(0)
     , length_(0)
     , map_(0)
     , normals_(0)
@@ -159,6 +161,8 @@ HeightMap::HeightMap(const HeightMap& other) {
   if (this == &other) {
     return;
   }
+
+  node_ = other.node_;
 
   width_ = other.width_;
   length_ = other.length_;
@@ -181,6 +185,8 @@ HeightMap& HeightMap::operator=(const HeightMap& other) {
   if (this == &other) {
     return *this;
   }
+
+  node_ = other.node_;
 
   width_ = other.width_;
   length_ = other.length_;

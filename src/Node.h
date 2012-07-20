@@ -16,8 +16,10 @@ class Node {
 
   virtual void Render() const;
 
-  void AddChild(Node* child) { children_.push_back(child); }
-  void RemoveChild(Node* child) { children_.remove(child); }
+  void AddChild(Node* child) { children_.push_back(child); child->parent_ = this; }
+  void RemoveChild(Node* child) { children_.remove(child); child->parent_ = NULL; }
+  void Detach() { if(parent_) { parent_->RemoveChild(this); } }
+  bool IsAttached() { return parent_ != NULL; }
 
   virtual void Rotate(char axis, double angle);
   virtual void Scale(const Vector3D& amount);
@@ -42,6 +44,7 @@ class Node {
 
   typedef std::list<Node*> ChildList;
   ChildList children_;
+  Node* parent_;
 };
 
 class JointNode : public Node {

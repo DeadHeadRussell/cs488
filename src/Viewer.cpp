@@ -1,6 +1,7 @@
 #include "Viewer.h"
 
 #include <algorithm>
+#include <cstdlib>
 #include <GL/gl.h>
 #include <GL/glu.h>
 
@@ -36,14 +37,16 @@ Viewer::Viewer() {
   tree->Translate(Vector3D(100, -200, -500));
   tree->Scale(Vector3D(0.1, 0.1, 0.1));
 
-  Node* terrain = GenerateTerrain("test.hm");
-  terrain->Translate(Vector3D(0, -200, -900));
-  terrain->Scale(Vector3D(0.1, 0.1, 0.1));
+  Node* terrain = Terrain::GenerateTerrain("test.hm");
+
+  Node* flock_node = flock_.GetNode();
+  flock_node->Translate(Vector3D(0, 0, -100));
 
   root_ = new Node("root");
-  root_->AddChild(terrain);
-  //root_->AddChild(bush);
-  //root_->AddChild(tree);
+  //root_->AddChild(terrain);
+  root_->AddChild(bush);
+  root_->AddChild(tree);
+  root_->AddChild(flock_node);
 
   mouse_prev_[0] = mouse_prev_[1] = 0;
   button_down_ = false;
@@ -67,12 +70,27 @@ void Viewer::on_realize() {
     return;
   }
 
-  glShadeModel(GL_SMOOTH);
   glClearColor(0, 0, 0, 0);
+  glShadeModel(GL_SMOOTH);
   glEnable(GL_DEPTH_TEST);
-  //glEnable(GL_NORMALIZE);
   glEnable(GL_COLOR_MATERIAL);
+
+  glEnable(GL_CULL_FACE);
+  glCullFace(GL_BACK);
+
+  glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
+
+  float pos[] = {0.0, 0.0, -1.0, 0.0};
+  glLightfv(GL_LIGHT0, GL_POSITION, pos);
+
+  float ambient[] = {0.3, 0.3, 0.3, 1.0};
+  float diffuse[] = {0.8, 0.8, 0.8, 1.0};
+  float specular[] = {0.5, 0.5, 0.5, 1.0};
+
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+  glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
 
   gl_drawable->gl_end();
 }
@@ -91,32 +109,22 @@ bool Viewer::on_expose_event(GdkEventExpose* event) {
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
-  glEnable(GL_DEPTH_TEST);
-  glDepthMask(GL_TRUE);
-
-  glEnable(GL_CULL_FACE);
-  glCullFace(GL_BACK);
-
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  glEnable(GL_LIGHTING);
+  flock_.Move();
 
-  float pos[] = {50.0, 0.0, 10.0, 1.0};
-  glLightfv(GL_LIGHT0, GL_POSITION, pos);
-
-  float ambient[] = {0.3, 0.3, 0.3, 1.0};
-  float diffuse[] = {0.8, 0.8, 0.8, 1.0};
-  float specular[] = {0.5, 0.5, 0.5, 1.0};
-
-  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
-  glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
-  glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+  if (flock_.AtDestination()) {
+    flock_.SetDestination(Point3D(-(rand() % 100), (rand() % 200) - 100,
+                                  -(rand() % 100)));
+  }
 
   // Render scene here
   root_->Render();
 
   gl_drawable->swap_buffers();
   gl_drawable->gl_end();
+
+  Invalidate();
 
   return true;
 }
@@ -192,8 +200,6 @@ bool Viewer::on_motion_notify_event(GdkEventMotion* event) {
   } else if (button[2]) {
     root_->Rotate('y', mouse_diff[0] * M_PI / 180);
   }
-
-  Invalidate();
 
   mouse_prev_[0] = event->x;
   mouse_prev_[1] = event->y;

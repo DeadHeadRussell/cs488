@@ -18,6 +18,8 @@ using std::pair;
 using std::string;
 using std::vector;
 
+namespace Terrain {
+
 void CreateMountain(string file_name) {
   ofstream file(file_name.c_str(), ios_base::out | ios_base::binary);
 
@@ -27,7 +29,7 @@ void CreateMountain(string file_name) {
   file.write((char*)&width, sizeof(width));
   file.write((char*)&talus, sizeof(talus));
 
-  for (unsigned i = 0; i < 100 * 40; i++) {
+  for (unsigned i = 0; i < 200 * 40; i++) {
     double a = 0.0;
     file.write((char*)&a, sizeof(a));
   }
@@ -43,13 +45,13 @@ void CreateMountain(string file_name) {
       file.write((char*)&a, sizeof(a));
     }
     
-    for (unsigned j = 0; j < 40; j++) {
+    for (unsigned j = 0; j < 140; j++) {
       double a = 0.0;
       file.write((char*)&a, sizeof(a));
     }
   }
 
-  for (unsigned i = 0; i < 100 * 40; i++) {
+  for (unsigned i = 0; i < 200 * 140; i++) {
     double a = 0.0;
     file.write((char*)&a, sizeof(a));
   }
@@ -64,6 +66,7 @@ Node* GenerateTerrain(string name) {
   map_stream >> *height_map;
 
   ThermalWeathering(height_map, 200);
+  height_map->ComputeNormals();
 
   Node* node = new Node(name);
   node->AddChild(Node::CreateHeightMapNode(name, height_map));
@@ -138,14 +141,18 @@ void ThermalWeathering(HeightMap* height_map, unsigned iterations) {
   *height_map = h2;
 }
 
+}
+
 HeightMap::HeightMap()
     : width_(0)
     , length_(0)
     , map_(0)
+    , normals_(0)
     , talus_(0) {}
 
 HeightMap::~HeightMap() {
   delete[] map_;
+  delete[] normals_;
 }
 
 HeightMap::HeightMap(const HeightMap& other) {
@@ -158,10 +165,13 @@ HeightMap::HeightMap(const HeightMap& other) {
   talus_ = other.talus_;
 
   delete[] map_;
+  delete[] normals_;
   map_ = new double[width_ * length_];
+  normals_ = new Vector3D[width_ * length_];
 
   for (unsigned i = 0; i < width_ * length_; i++) {
     map_[i] = other.map_[i];
+    normals_[i] = other.normals_[i];
   }
 
   return;
@@ -177,10 +187,13 @@ HeightMap& HeightMap::operator=(const HeightMap& other) {
   talus_ = other.talus_;
 
   delete[] map_;
+  delete[] normals_;
   map_ = new double[width_ * length_];
+  normals_ = new Vector3D[width_ * length_];
 
   for (unsigned i = 0; i < width_ * length_; i++) {
     map_[i] = other.map_[i];
+    normals_[i] = other.normals_[i];
   }
 
   return *this;
@@ -204,31 +217,83 @@ Colour getColour(double height) {
 void HeightMap::Render() const {
   glFrontFace(GL_CW);
   glBegin(GL_QUADS);
+  Colour c(0.0);
+  double value;
   for (unsigned i = 0; i < width_ - 1; i++) {
     for (unsigned j = 0; j < length_ - 1; j++) {
-      double value = (*this)[i][j];
-      Colour c = getColour(value);
+      value = (*this)[i][j];
+      c = getColour(value);
+      glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
       glColor3d(c.R(), c.G(), c.B());
+      Vector3D normal = GetNormal(i, j);
+      glNormal3d(normal[0], normal[1], normal[2]);
       glVertex3d(i, value, j);
 
       value = (*this)[i + 1][j];
       c = getColour(value);
+      glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
       glColor3d(c.R(), c.G(), c.B());
+      normal = GetNormal(i, j);
+      glNormal3d(normal[0], normal[1], normal[2]);
       glVertex3d(i + 1, value, j);
 
       value = (*this)[i + 1][j + 1];
       c = getColour(value);
+      glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
       glColor3d(c.R(), c.G(), c.B());
+      normal = GetNormal(i, j);
+      glNormal3d(normal[0], normal[1], normal[2]);
       glVertex3d(i + 1, value, j + 1);
 
       value = (*this)[i][j + 1];
       c = getColour(value);
+      glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
       glColor3d(c.R(), c.G(), c.B());
+      normal = GetNormal(i, j);
+      glNormal3d(normal[0], normal[1], normal[2]);
       glVertex3d(i, value, j + 1);
     }
   }
   glEnd();
 }
+
+Vector3D& HeightMap::GetNormal(unsigned i, unsigned j) const {
+  return (normals_ + i * width_)[j];
+}
+
+void HeightMap::ComputeNormals() {
+  for (unsigned i = 0; i < width_; i++) {
+    for (unsigned j = 0; j < length_; j++) {
+      double a = 0;
+      double b = 0;
+      double c = 0;
+      double d = 0;
+
+      if (i > 0) {
+        a = (*this)[i - 1][j];
+      }
+
+      if (i < width_ - 1) {
+        c = (*this)[i + 1][j];
+      }
+
+      if (j > 0) {
+        d = (*this)[i][j - 1];
+      }
+
+      if (j < length_ - 1) {
+        b = (*this)[i][j + 1];
+      }
+      
+      Vector3D& N = GetNormal(i, j);
+      N[0] = c - a;
+      N[2] = b - d;
+      N[1] = -200.0 * (1.0 / width_ + 1.0 / length_);
+
+      N.Normalize();
+    }
+  }
+};
 
 istream& operator>>(istream& stream, HeightMap& height_map) {
   // File format:
@@ -241,9 +306,14 @@ istream& operator>>(istream& stream, HeightMap& height_map) {
   stream.read((char*)&(height_map.talus_), sizeof(double));
 
   delete[] height_map.map_;
+  delete[] height_map.normals_;
   height_map.map_ = new double[height_map.width_ * height_map.length_];
+  height_map.normals_ = new Vector3D[height_map.width_ * height_map.length_];
+
   stream.read((char*)height_map.map_,
               (height_map.width_ * height_map.length_) * sizeof(double));
+
+  height_map.ComputeNormals();
 
   return stream;
 }

@@ -4,6 +4,7 @@
 #include <gtkglmm.h>
 #include <gtkmm.h>
 
+#include "Flock.h"
 #include "Node.h"
 
 class Viewer : public Gtk::GL::DrawingArea {
@@ -23,6 +24,8 @@ class Viewer : public Gtk::GL::DrawingArea {
 
  private:
   Node* root_;
+
+  Flock flock_;
 
   bool button_down_;
   int mouse_prev_[2];

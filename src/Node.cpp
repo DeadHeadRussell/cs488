@@ -19,7 +19,7 @@ GeometryNode* Node::CreateMeshNode(const string& name) {
 
 GeometryNode* Node::CreateSphereNode(const string& name) {
   Primitive* primitive = new Sphere();
-  Material* material = new PhongMaterial(Colour(1.0, 1.0, 1.0), Colour(1.0, 1.0, 1.0), 1.0);
+  Material* material = new PhongMaterial(Colour(1.0, 1.0, 1.0), Colour(0.1, 0.1, 0.1), 1.0);
   GeometryNode* node = new GeometryNode(name, primitive, material);
   return node;
 }
@@ -31,7 +31,8 @@ GeometryNode* Node::CreateHeightMapNode(const string& name, HeightMap* primitive
 }
 
 Node::Node(const string& name)
-    : name_(name) {
+    : name_(name)
+    , parent_(NULL) {
   id_ = ids++;
 }
 

@@ -9,9 +9,11 @@
 class HeightMap;
 class Node;
 
-void CreateMountain(std::string name);
-Node* GenerateTerrain(std::string name);
-void ThermalWeathering(HeightMap* height_map, unsigned iterations);
+namespace Terrain {
+  void CreateMountain(std::string name);
+  Node* GenerateTerrain(std::string name);
+  void ThermalWeathering(HeightMap* height_map, unsigned iterations);
+};
 
 class HeightMap : public Primitive {
  public:
@@ -27,12 +29,16 @@ class HeightMap : public Primitive {
   double* operator[](unsigned i) { return map_ + i * width_; }
   const double* operator[](unsigned i) const { return map_ + i * width_; }
 
+  void ComputeNormals();
   virtual void Render() const;
 
  private:
+  Vector3D& GetNormal(unsigned i, unsigned j) const;
+
   unsigned width_;
   unsigned length_;
   double* map_;
+  Vector3D* normals_;
   double talus_;
 
   friend std::istream& operator>>(std::istream&, HeightMap&);

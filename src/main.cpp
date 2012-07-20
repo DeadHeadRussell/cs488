@@ -5,7 +5,7 @@
 #include "Terrain.h"
 
 int main(int argc, char** argv) {
-  CreateMountain("test.hm");
+  Terrain::CreateMountain("test.hm");
 
   Gtk::Main kit(argc, argv);
   Gtk::GL::init(argc, argv);

@@ -14,12 +14,12 @@ PhongMaterial::PhongMaterial(const Colour& kd, const Colour& ks,
 PhongMaterial::~PhongMaterial() {}
 
 void PhongMaterial::Render() const {
-  //float specular[] = {ks_.R(), ks_.G(), ks_.B(), 1.0};
-  //glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, specular);
+  glColorMaterial(GL_FRONT, GL_SPECULAR);
+  glColor3d(ks_.R(), ks_.G(), ks_.B());
 
-  //glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+  glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
   glColor3d(kd_.R(), kd_.G(), kd_.B());
 
-  //glMaterialf(GL_FRONT, GL_SHININESS, shininess_);
+  glMaterialf(GL_FRONT, GL_SHININESS, shininess_);
 }
 

@@ -1,0 +1,400 @@
+#include "viewer.hpp"
+
+#include <cmath>
+#include <GL/gl.h>
+#include <GL/glu.h>
+
+#include "algebra.hpp"
+#include "trackball.hpp"
+
+Viewer::Viewer(SceneNode* root)
+  : m_root(root)
+  , m_circle(false)
+  , m_buffer(false)
+  , m_backface(false)
+  , m_frontface(false)
+  , m_mode(MODE_MODEL)
+  , m_buttonDown(false)
+{
+  Glib::RefPtr<Gdk::GL::Config> glconfig;
+
+  // Ask for an OpenGL Setup with
+  //  - red, green and blue component colour
+  //  - a depth buffer to avoid things overlapping wrongly
+  //  - double-buffered rendering to avoid tearing/flickering
+  glconfig = Gdk::GL::Config::create(Gdk::GL::MODE_RGB |
+                                     Gdk::GL::MODE_DEPTH |
+                                     Gdk::GL::MODE_DOUBLE);
+  if (glconfig == 0) {
+    // If we can't get this configuration, die
+    std::cerr << "Unable to setup OpenGL Configuration!" << std::endl;
+    abort();
+  }
+
+  // Accept the configuration
+  set_gl_capability(glconfig);
+
+  // Register the fact that we want to receive these events
+  add_events(Gdk::BUTTON1_MOTION_MASK    |
+             Gdk::BUTTON2_MOTION_MASK    |
+             Gdk::BUTTON3_MOTION_MASK    |
+             Gdk::POINTER_MOTION_MASK    |
+             Gdk::BUTTON_PRESS_MASK      | 
+             Gdk::BUTTON_RELEASE_MASK    |
+             Gdk::VISIBILITY_NOTIFY_MASK);
+}
+
+Viewer::~Viewer()
+{
+  // Nothing to do here right now.
+}
+
+void Viewer::reset_position() {
+  m_translate = Matrix4x4();
+}
+
+void Viewer::reset_orientation() {
+  m_rotate = Matrix4x4();
+}
+
+void Viewer::reset_joints() {
+  m_root->reset_joint();
+}
+
+void Viewer::reset_all() {
+  reset_position();
+  reset_orientation();
+  reset_joints();
+}
+
+void Viewer::invalidate()
+{
+  // Force a rerender
+  Gtk::Allocation allocation = get_allocation();
+  get_window()->invalidate_rect( allocation, false);
+}
+
+void Viewer::on_realize()
+{
+  // Do some OpenGL setup.
+  // First, let the base class do whatever it needs to
+  Gtk::GL::DrawingArea::on_realize();
+  
+  Glib::RefPtr<Gdk::GL::Drawable> gldrawable = get_gl_drawable();
+  
+  if (!gldrawable)
+    return;
+
+  if (!gldrawable->gl_begin(get_gl_context()))
+    return;
+
+  glShadeModel(GL_SMOOTH);
+  glClearColor(0, 0, 0, 0);
+  glEnable(GL_DEPTH_TEST);
+  glEnable(GL_NORMALIZE);
+  glEnable(GL_COLOR_MATERIAL);
+  glEnable(GL_LIGHT0);
+
+  gldrawable->gl_end();
+}
+
+bool Viewer::on_expose_event(GdkEventExpose* event)
+{
+  Glib::RefPtr<Gdk::GL::Drawable> gldrawable = get_gl_drawable();
+
+  if (!gldrawable) return false;
+
+  if (!gldrawable->gl_begin(get_gl_context()))
+    return false;
+
+  // Set up for perspective drawing 
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glViewport(0, 0, get_width(), get_height());
+  gluPerspective(40.0, (GLfloat)get_width()/(GLfloat)get_height(), 0.1, 1000.0);
+
+  // change to model view for drawing
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+
+  if (m_buffer) {
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+  } else {
+    glDisable(GL_DEPTH_TEST);
+  }
+
+  if (m_backface && m_frontface) {
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT_AND_BACK);
+  } else if (m_backface) {
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+  } else if (m_frontface) {
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+  } else {
+    glDisable(GL_CULL_FACE);
+  }
+
+
+
+  // Clear framebuffer
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  glEnable(GL_LIGHTING);
+
+  float pos[] = {20.0, 20.0, 5.0, 1.0};
+  glLightfv(GL_LIGHT0, GL_POSITION, pos);
+
+  float ambient[] = {0.1, 0.1, 0.1, 1.0};
+  float diffuse[] = {0.8, 0.8, 0.8, 1.0};
+  float specular[] = {0.5, 0.5, 0.5, 1.0};
+
+  glLightModelfv(GL_LIGHT_MODEL_AMBIENT, ambient);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse);
+  glLightfv(GL_LIGHT0, GL_SPECULAR, specular);
+
+  glPushMatrix();
+
+  glMultMatrixd(
+      (m_root->get_transform() * m_translate * m_rotate * m_root->get_inverse()).transpose().begin());
+
+  m_root->walk_gl();
+
+  glPopMatrix();
+
+  if (m_circle) {
+    draw_trackball_circle();
+  }
+
+  // Swap the contents of the front and back buffers so we see what we
+  // just drew. This should only be done if double buffering is enabled.
+  gldrawable->swap_buffers();
+
+  gldrawable->gl_end();
+
+  return true;
+}
+
+bool Viewer::on_configure_event(GdkEventConfigure* event)
+{
+  Glib::RefPtr<Gdk::GL::Drawable> gldrawable = get_gl_drawable();
+
+  if (!gldrawable) return false;
+  
+  if (!gldrawable->gl_begin(get_gl_context()))
+    return false;
+
+  // Set up perspective projection, using current size and aspect
+  // ratio of display
+
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glViewport(0, 0, event->width, event->height);
+  gluPerspective(40.0, (GLfloat)event->width/(GLfloat)event->height, 0.1, 1000.0);
+
+  // Reset to modelview matrix mode
+  
+  glMatrixMode(GL_MODELVIEW);
+
+  gldrawable->gl_end();
+
+  return true;
+}
+
+#include <cstdio>
+
+bool Viewer::on_button_press_event(GdkEventButton* event)
+{
+  if (!m_buttonDown) {
+    m_mousePrev[0] = event->x;
+    m_mousePrev[1] = event->y;
+  }
+
+  m_buttonDown = true;
+
+  return true;
+}
+
+bool Viewer::on_button_release_event(GdkEventButton* event)
+{
+  int button_count = 0;
+
+  if (event->state & Gdk::BUTTON1_MASK) {
+    button_count++;
+  }
+
+  if (event->state & Gdk::BUTTON2_MASK) {
+    button_count++;
+  }
+
+  if (event->state & Gdk::BUTTON3_MASK) {
+    button_count++;
+  }
+
+  if (button_count <= 1) {
+    m_buttonDown = false;
+  }
+
+  if (event->state & Gdk::BUTTON1_MASK && m_mode == MODE_JOINTS) {
+    glSelectBuffer(BUFFER_LEN, m_selectBuffer);
+    glRenderMode(GL_SELECT);
+    glInitNames();
+    glPushName(-1);
+
+    GLint* viewport = new GLint[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+
+    gluPickMatrix(event->x, viewport[3] - event->y, 1, 1, viewport);
+    gluPerspective(40.0, (GLfloat)get_width() / (GLfloat)get_height(), 0.1, 1000.0);
+
+    glMatrixMode(GL_MODELVIEW);
+
+    glPushMatrix();
+    glMultMatrixd(
+      (m_root->get_transform() * m_translate * m_rotate * m_root->get_inverse()).transpose().begin());
+    m_root->walk_gl();
+    glPopMatrix();
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+
+    glMatrixMode(GL_MODELVIEW);
+    int hits = glRenderMode(GL_RENDER);
+    if (hits != 0) {
+      GLuint* ptr = (GLuint*)m_selectBuffer;
+      for (int i = 0; i < hits; i++) {
+        GLuint names = *ptr;
+        ptr += 3;
+        for (int j = 0; j < names; j++) {
+          ptr++;
+        }
+        ptr--;
+        m_root->select(*ptr);
+        ptr++;
+      }
+
+      invalidate();
+    }
+  }
+
+  return true;
+}
+
+bool Viewer::on_motion_notify_event(GdkEventMotion* event)
+{
+  bool button[3];
+  button[0] = event->state & Gdk::BUTTON1_MASK;
+  button[2] = event->state & Gdk::BUTTON2_MASK;
+  button[1] = event->state & Gdk::BUTTON3_MASK;
+
+  if (!(button[0] || button[1] || button[2])) {
+    return true;
+  }
+
+  double mouse_diff[2];
+  mouse_diff[0] = (double)(event->x - m_mousePrev[0]);
+  mouse_diff[1] = (double)(event->y - m_mousePrev[1]);
+
+  Matrix4x4 transform;
+  char axis[3] = {'x', 'y', 'z'};
+
+  switch (m_mode) {
+    case MODE_MODEL:
+      if (button[0] || button[2]) {
+        double* m = transform.get_array();
+
+        if (button[0]) {
+          m[3] = mouse_diff[0] / 50.0;
+          m[7] = -mouse_diff[1] / 50.0;
+        }
+        
+        if (button[2]) {
+          m[11] = mouse_diff[1] / 50.0;
+        }
+
+        m_translate = m_translate * transform;
+      }
+
+      if (button[1]) {
+        // Translate to screen co-ordinates
+        float newX = event->x - get_width() * 0.5;
+        float newY = event->y - get_height() * 0.5;
+        float oldX = m_mousePrev[0] - get_width() * 0.5;
+        float oldY = m_mousePrev[1] - get_height() * 0.5;
+
+        float diameter = MIN(get_height(), get_width()) * 0.5;
+
+        transform = TrackballRotation(newX, oldX, newY, oldY, diameter);
+
+        m_rotate = m_rotate * transform;
+      }
+
+      break;
+
+    case MODE_JOINTS:
+      if (button[1] || button[2]) {
+        if (button[2]) {
+          m_root->rotate_joint('x', mouse_diff[1]);
+        }
+        
+        if (button[1]) {
+          m_root->rotate_joint('y', mouse_diff[0]);
+        }
+      }
+      break;
+
+    default:
+      break;
+  }
+
+  m_mousePrev[0] = event->x;
+  m_mousePrev[1] = event->y;
+
+  invalidate();
+
+  return true;
+}
+
+void Viewer::draw_trackball_circle()
+{
+  int current_width = get_width();
+  int current_height = get_height();
+  
+  // Set up for orthogonal drawing to draw a circle on screen.
+  // You'll want to make the rest of the function conditional on
+  // whether or not we want to draw the circle this time around.
+  glMatrixMode(GL_PROJECTION);
+  glLoadIdentity();
+  glViewport(0, 0, current_width, current_height);
+  glOrtho(0.0, (float)current_width, 
+           0.0, (float)current_height, -0.1, 0.1);
+
+  // change to model view for drawing
+  glMatrixMode(GL_MODELVIEW);
+
+  // Reset modelview matrix
+  glLoadIdentity();
+
+  // draw a circle for use with the trackball 
+  glDisable(GL_LIGHTING);
+  glEnable(GL_LINE_SMOOTH);
+  glColor3f(1.0, 1.0, 1.0);
+  double radius = current_width < current_height ? 
+    (float)current_width * 0.25 : (float)current_height * 0.25;
+  glTranslated((float)current_width * 0.5, (float)current_height * 0.5, 0);
+  glBegin(GL_LINE_LOOP);
+  for(size_t i=0; i<40; ++i) {
+    double cosine = radius * cos(i*2*M_PI/40);
+    double sine = radius * sin(i*2*M_PI/40);
+    glVertex2f(cosine, sine);
+  }
+  glEnd();
+  glColor3f(0.0, 0.0, 0.0);
+  glDisable(GL_LINE_SMOOTH);
+}

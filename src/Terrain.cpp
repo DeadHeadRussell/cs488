@@ -34,7 +34,7 @@ void CreateMountain(string file_name) {
     file.write((char*)&a, sizeof(a));
   }
 
-  for (unsigned i = 0; i < 80; i++) {
+  for (unsigned i = 0; i < 20; i++) {
     for (unsigned j = 0; j < 10; j++) {
       double a = 50.0;
       file.write((char*)&a, sizeof(a));
@@ -51,24 +51,26 @@ void CreateMountain(string file_name) {
     }
   }
 
-  for (unsigned i = 0; i < 100 * 10; i++) {
-    double a = 50.0;
+  for (unsigned i = 0; i < 100 * 70; i++) {
+    double a = 0.0;
     file.write((char*)&a, sizeof(a));
   }
 
   file.close();
 }
 
-HeightMap* GenerateTerrain(string name) {
+HeightMap* GenerateTerrain(string name, bool weather) {
   ifstream map_stream(name.c_str());
 
   HeightMap* height_map = new HeightMap();
   map_stream >> *height_map;
 
-  //ThermalWeathering(height_map, 500);
+  if (weather) {
+    ThermalWeathering(height_map, 500);
+  }
 
   Node* node = new Node(name);
-  node->AddChild(Node::CreateHeightMapNode(name, height_map));
+  node->AddChild(Node::CreateHeightMapNode(name, height_map, "data/img/terrain.jpg"));
   height_map->SetNode(node);
   return height_map;
 }
@@ -146,11 +148,28 @@ void ThermalWeathering(HeightMap* height_map, unsigned iterations) {
 
 HeightMap::HeightMap()
     : node_(0)
+    , texture_(true)
     , width_(0)
     , length_(0)
     , map_(0)
     , normals_(0)
     , talus_(0) {}
+
+HeightMap::HeightMap(unsigned width, unsigned length, double height, bool texture)
+    : node_(0)
+    , texture_(texture)
+    , width_(width)
+    , length_(length)
+    , talus_(0) {
+  map_ = new double[width_ * length_];
+  normals_ = new Vector3D[width_ * length_];
+
+  for (unsigned i = 0; i < width_ * length_; i++) {
+    map_[i] = height;
+  }
+
+  ComputeNormals();
+}
 
 HeightMap::~HeightMap() {
   delete[] map_;
@@ -167,6 +186,7 @@ HeightMap::HeightMap(const HeightMap& other) {
   width_ = other.width_;
   length_ = other.length_;
   talus_ = other.talus_;
+  texture_ = other.texture_;
 
   delete[] map_;
   delete[] normals_;
@@ -191,6 +211,7 @@ HeightMap& HeightMap::operator=(const HeightMap& other) {
   width_ = other.width_;
   length_ = other.length_;
   talus_ = other.talus_;
+  texture_ = other.texture_;
 
   delete[] map_;
   delete[] normals_;
@@ -207,17 +228,8 @@ HeightMap& HeightMap::operator=(const HeightMap& other) {
 
 Colour getColour(double height) {
   // 0..100
-  static Colour red(1.0, 0.0, 0.0);
-  static Colour green(0.0, 1.0, 0.0);
-  static Colour blue(0.0, 0.0, 1.0);
-
-  if (height < 35) {
-    return blue;
-  } else if (height < 70) {
-    return green;
-  } else {
-    return red;
-  }
+  double c = height / 100.0 + 0.5;
+  return Colour(c, c, c);
 }
 
 void HeightMap::Render() const {
@@ -228,33 +240,45 @@ void HeightMap::Render() const {
   for (unsigned i = 0; i < width_ - 1; i++) {
     for (unsigned j = 0; j < length_ - 1; j++) {
       value = (*this)[i][j];
-      c = getColour(value);
-      glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-      glColor3d(c.R(), c.G(), c.B());
+      if (texture_) {
+        c = getColour(value);
+        glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+        glColor3d(c.R(), c.G(), c.B());
+        glTexCoord2f(0.0, 0.0);
+      }
       Vector3D normal = GetNormal(i, j);
       glNormal3d(normal[0], normal[1], normal[2]);
       glVertex3d(i, value, j);
 
       value = (*this)[i + 1][j];
-      c = getColour(value);
-      glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-      glColor3d(c.R(), c.G(), c.B());
+      if (texture_) {
+        c = getColour(value);
+        glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+        glColor3d(c.R(), c.G(), c.B());
+        glTexCoord2f(1.0, 0.0);
+      }
       normal = GetNormal(i, j);
       glNormal3d(normal[0], normal[1], normal[2]);
       glVertex3d(i + 1, value, j);
 
       value = (*this)[i + 1][j + 1];
-      c = getColour(value);
-      glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-      glColor3d(c.R(), c.G(), c.B());
+      if (texture_) {
+        c = getColour(value);
+        glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+        glColor3d(c.R(), c.G(), c.B());
+        glTexCoord2f(0.0, 1.0);
+      }
       normal = GetNormal(i, j);
       glNormal3d(normal[0], normal[1], normal[2]);
       glVertex3d(i + 1, value, j + 1);
 
       value = (*this)[i][j + 1];
-      c = getColour(value);
-      glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
-      glColor3d(c.R(), c.G(), c.B());
+      if (texture_) {
+        c = getColour(value);
+        glColorMaterial(GL_FRONT_AND_BACK, GL_DIFFUSE);
+        glColor3d(c.R(), c.G(), c.B());
+        glTexCoord2f(1.0, 1.0);
+      }
       normal = GetNormal(i, j);
       glNormal3d(normal[0], normal[1], normal[2]);
       glVertex3d(i, value, j + 1);

@@ -2,7 +2,8 @@
 
 using Gtk::Menu_Helpers::MenuElem;
 
-AppWindow::AppWindow() {
+AppWindow::AppWindow(char mode)
+    : viewer_(mode) {
   set_title("Project");
 
   menubar_.items().push_back(MenuElem("_Dummy", dummy_));

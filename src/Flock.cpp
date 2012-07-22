@@ -24,29 +24,26 @@ class Fish : public Flock::Animal {
   double max_random_;
 
   Vector3D next_velocity_;
-
-  //static Mesh fish_mesh_;
 };
 
 Fish::Fish(unsigned i) {
-  //if (fish_mesh_.IsEmpty()) {
-    // Load in mesh
-  //}
-
   stringstream ss;
   ss << "Fish" << i;
-  //node_ = Node::CreateMeshNode(ss.str(), fish_mesh_);
-  node_ = Node::CreateSphereNode(ss.str());
+  node_ = Node::CreateObjectNode(ss.str(), "data/mesh/goldfish.obj", "data/img/goldfish.tif");
+  node_->Scale(Vector3D(120, 120, 120));
 
-  max_speed_ = 0.1;
+  max_speed_ = 0.3;
   max_random_ = 20;
 
   size_ = 2;
   alignment_ = 8;
   attraction_ = 20;
 
-  position_ = Point3D((i % 5) * 10, (i / 5) * 10, 0);
-  node_->Translate(Vector3D((i % 5) * 10, (i / 5) * 10, 0));
+  double x = (i % 5) * 10 + ((rand() % 40) / 10.0 - 2.0);
+  double y = (i / 5) * 10 + ((rand() % 40) / 10.0 - 2.0);
+  position_ = Point3D(x, y, 0);
+  node_->Translate(Vector3D(x, y, 0));
+  node_->Rotate('x', 90);
 }
 
 bool Fish::WillCollide(const Flock::FlockList& flock) {
@@ -62,6 +59,9 @@ bool Fish::WillCollide(const Flock::FlockList& flock) {
 void Fish::SetVelocity(const Vector3D& velocity) {
   velocity_ = next_velocity_;
   next_velocity_ = velocity;
+  next_velocity_[0] += (rand() % 8 / 10.0 - 1.0);
+  next_velocity_[1] += (rand() % 8 / 10.0 - 1.0);
+  next_velocity_[2] += (rand() % 8 / 10.0 - 1.0);
   double speed = next_velocity_.Length();
   if (speed > max_speed_) {
     next_velocity_ = (max_speed_ / speed) * next_velocity_;

@@ -1,6 +1,8 @@
 #ifndef __MATERIAL_H__
 #define __MATERIAL_H__
 
+#include <string>
+
 #include "Algebra.h"
 
 class Material {
@@ -25,5 +27,21 @@ class PhongMaterial : public Material {
   double shininess_;
 };
 
+class Texture : public Material {
+ public:
+  Texture(std::string file_name);
+  virtual ~Texture();
+
+  virtual void Render() const;
+
+ private:
+  bool tiff_;
+  int width_;
+  int height_;
+  int components_;
+  unsigned char* buffer_;
+
+  unsigned texture_object_;
+};
 
 #endif

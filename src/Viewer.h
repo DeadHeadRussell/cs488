@@ -7,9 +7,12 @@
 #include "Flock.h"
 #include "Node.h"
 
+class HeightMap;
+class Water;
+
 class Viewer : public Gtk::GL::DrawingArea {
  public:
-  Viewer();
+  Viewer(char mode);
   virtual ~Viewer();
 
   void Invalidate();
@@ -26,7 +29,10 @@ class Viewer : public Gtk::GL::DrawingArea {
   Node* root_;
 
   HeightMap* terrain_;
-  Flock flock_;
+  Water* water_;
+  Flock* flock_;
+
+  char mode_;
 
   bool button_down_;
   int mouse_prev_[2];

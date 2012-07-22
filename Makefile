@@ -3,9 +3,11 @@ DEP = $(patsubst src/%.cpp, dep/%.d, $(SRC))
 OBJ = $(patsubst src/%.cpp, obj/%.o, $(SRC))
 BIN = proj
 
-LDFLAGS = $(shell pkg-config --libs gtkmm-2.4 gtkglextmm-1.2 lua)
-CPPFLAGS = $(shell pkg-config --cflags gtkmm-2.4 gtkglextmm-1.2 lua)
+LDFLAGS = $(shell pkg-config --libs gtkmm-2.4 gtkglextmm-1.2) -ljpeg -ltiff
+CPPFLAGS = $(shell pkg-config --cflags gtkmm-2.4 gtkglextmm-1.2)
 CXXFLAGS = $(CPPFLAGS) -W -Wall -O3
+
+CXX = g++
 
 .PHONY : clean dep
 

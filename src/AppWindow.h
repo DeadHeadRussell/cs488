@@ -7,7 +7,7 @@
 
 class AppWindow : public Gtk::Window {
  public:
-  AppWindow();
+  AppWindow(char mode);
 
  private:
   Gtk::VBox vbox_;

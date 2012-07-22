@@ -86,7 +86,7 @@ Node* LSystem::Generate(ExpandRules expand, EvalRules eval, TurtleState state) {
   }
 
   Node* wrapper = new Node(state.name_ + "-wrapper");
-  GeometryNode* root = Node::CreateMeshNode(state.name_ + "-root");
+  GeometryNode* root = Node::CreateMeshNode(state.name_ + "-root", "data/img/tree_bark.jpg");
   state.current_node_ = root;
   wrapper->AddChild(root);
 

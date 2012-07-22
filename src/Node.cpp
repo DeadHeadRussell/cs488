@@ -10,9 +10,12 @@ using std::string;
 
 static int ids = 0;
 
-GeometryNode* Node::CreateMeshNode(const string& name) {
+GeometryNode* Node::CreateMeshNode(const string& name, const string& texture) {
   Primitive* primitive = new Mesh();
-  Material* material = new PhongMaterial(Colour(0.2, 0.6, 0.2), Colour(0.1, 0.1, 0.1), 1.0);
+  Material* material = NULL;
+  if (texture.size() > 0) {
+    material = new Texture(texture);
+  }
   GeometryNode* node = new GeometryNode(name, primitive, material);
   return node;
 }
@@ -24,8 +27,21 @@ GeometryNode* Node::CreateSphereNode(const string& name) {
   return node;
 }
 
-GeometryNode* Node::CreateHeightMapNode(const string& name, HeightMap* primitive) {
-  Material* material = new PhongMaterial(Colour(1.0, 1.0, 1.0), Colour(1.0, 1.0, 1.0), 1.0);
+GeometryNode* Node::CreateHeightMapNode(const string& name, HeightMap* primitive, const string& file) {
+  Material* material = NULL;
+  if (file.size() > 0) {
+    material = new Texture(file);
+  } else {
+    material = new PhongMaterial(Colour(0.2, 0.5, 1.0), Colour(0.1, 0.1, 0.1), 10.0);
+  }
+  GeometryNode* node = new GeometryNode(name, primitive, material);
+  return node;
+}
+
+GeometryNode* Node::CreateObjectNode(const string& name, const string& obj_name,
+                                     const string& tex_name) {
+  Primitive* primitive = new Object(obj_name);
+  Material* material = new Texture(tex_name);
   GeometryNode* node = new GeometryNode(name, primitive, material);
   return node;
 }

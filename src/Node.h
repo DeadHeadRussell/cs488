@@ -31,9 +31,14 @@ class Node {
   virtual bool IsJoint() const { return false; }
 
   static GeometryNode* CreateSphereNode(const std::string& name);
-  static GeometryNode* CreateMeshNode(const std::string& name);
+  static GeometryNode* CreateMeshNode(const std::string& name,
+                                      const std::string& texture = "");
   static GeometryNode* CreateHeightMapNode(const std::string& name,
-                                           HeightMap* primitive);
+                                           HeightMap* primitive,
+                                           const std::string& file);
+  static GeometryNode* CreateObjectNode(const std::string& name,
+                                        const std::string& obj_name,
+                                        const std::string& tex_name);
 
  protected:
   unsigned id_;

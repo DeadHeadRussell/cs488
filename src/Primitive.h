@@ -2,6 +2,8 @@
 #define __PRIMITIVE_H__
 
 #include <list>
+#include <utility>
+#include <vector>
 
 #include "Algebra.h"
 
@@ -36,6 +38,19 @@ class Mesh : public Primitive {
   Point3D end_point_;
   typedef std::list<Cylinder> CylinderList;
   CylinderList cylinders_;
+};
+
+class Object : public Primitive {
+ public:
+  Object(const std::string& file_name);
+  virtual ~Object();
+
+  virtual void Render() const;
+
+ private:
+  std::vector<Point3D> vertices_;
+  std::vector<Point2D> texture_vertices_;
+  std::list<std::pair<unsigned, int> > face_;
 };
 
 #endif
